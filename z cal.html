@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/L Z-Score & State Campus Predictor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#38bdf8',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #030712;
+        }
+
+        /* Custom Liquid Glass Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-panel-hover:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 12px 40px 0 rgba(6, 182, 212, 0.15);
+        }
+
+        .glass-input {
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-input:focus {
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 7, 18, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.4);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen relative overflow-x-hidden pb-16">
+
+    <!-- Ambient Liquid Background Glow Orbs -->
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-600/30 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[160px] pointer-events-none -z-10"></div>
+    <div class="fixed top-[40%] left-[30%] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+
+        <!-- Liquid Glass Header -->
+<header class="glass-panel sticky top-0 z-50 px-6 py-4 mb-8">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-cyan-500/10 border border-cyan-400/30 rounded-2xl text-cyan-400 shadow-lg backdrop-blur-md">
+                <i class="fa-solid fa-graduation-cap text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg md:text-xl text-white tracking-wide bg-gradient-to-r from-white via-slate-200 to-cyan-400 bg-clip-text text-transparent">
+                    A/L Z-Score Predictor
+                </h1>
+                <p class="text-xs text-slate-400 font-medium">17 UGC National State Universities (Subject Agnostic)</p>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Input Form (5 cols) -->
+        <section class="lg:col-span-5 space-y-6">
+            <div class="glass-panel rounded-3xl p-6 shadow-2xl space-y-5">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2.5 border-b border-white/10 pb-4">
+                    <i class="fa-solid fa-sliders text-cyan-400"></i> Input Details
+                </h2>
+
+                <form id="calcForm" class="space-y-5">
+                    
+                    <!-- Stream Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">1. Select A/L Stream</label>
+                        <select id="streamSelect" class="w-full glass-input rounded-xl px-4 py-3 text-sm text-white font-medium cursor-pointer">
+                            <option value="maths" class="bg-slate-900 text-white">Physical Science (Maths Stream)</option>
+                            <option value="tech" class="bg-slate-900 text-white">Technology Stream (Tech)</option>
+                            <option value="commerce" class="bg-slate-900 text-white">Commerce Stream</option>
+                            <option value="arts" class="bg-slate-900 text-white">Arts Stream</option>
+                        </select>
+                    </div>
+
+                    <!-- District Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">2. Select Your District</label>
+                        <select id="districtSelect" class="w-full glass-input rounded-xl px-4 py-3 text-sm text-white font-medium cursor-pointer">
+                            <option value="Colombo" class="bg-slate-900">Colombo</option>
+                            <option value="Gampaha" class="bg-slate-900">Gampaha</option>
+                            <option value="Kalutara" class="bg-slate-900">Kalutara</option>
+                            <option value="Kandy" class="bg-slate-900">Kandy</option>
+                            <option value="Matale" class="bg-slate-900">Matale</option>
+                            <option value="Nuwara Eliya" class="bg-slate-900">Nuwara Eliya</option>
+                            <option value="Galle" class="bg-slate-900">Galle</option>
+                            <option value="Matara" class="bg-slate-900">Matara</option>
+                            <option value="Hambantota" class="bg-slate-900">Hambantota</option>
+                            <option value="Jaffna" class="bg-slate-900">Jaffna</option>
+                            <option value="Kilinochchi" class="bg-slate-900">Kilinochchi</option>
+                            <option value="Mannar" class="bg-slate-900">Mannar</option>
+                            <option value="Vavuniya" class="bg-slate-900">Vavuniya</option>
+                            <option value="Mullaitivu" class="bg-slate-900">Mullaitivu</option>
+                            <option value="Batticaloa" class="bg-slate-900">Batticaloa</option>
+                            <option value="Ampara" class="bg-slate-900">Ampara</option>
+                            <option value="Trincomalee" class="bg-slate-900">Trincomalee</option>
+                            <option value="Kurunegala" class="bg-slate-900">Kurunegala</option>
+                            <option value="Puttalam" class="bg-slate-900">Puttalam</option>
+                            <option value="Anuradhapura" class="bg-slate-900">Anuradhapura</option>
+                            <option value="Polonnaruwa" class="bg-slate-900">Polonnaruwa</option>
+                            <option value="Badulla" class="bg-slate-900">Badulla</option>
+                            <option value="Monaragala" class="bg-slate-900">Monaragala</option>
+                            <option value="Ratnapura" class="bg-slate-900">Ratnapura</option>
+                            <option value="Kegalle" class="bg-slate-900">Kegalle</option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Subject Selection -->
+                    <div class="border-t border-white/10 pt-4">
+                        <label class="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3">
+                            3. Select Subjects & Marks
+                        </label>
+                        
+                        <div class="space-y-3">
+                            <!-- Subject 1 -->
+                            <div class="glass-panel p-3 rounded-2xl">
+                                <label class="block text-[11px] text-slate-400 mb-1">Subject 01</label>
+                                <div class="grid grid-cols-12 gap-2">
+                                    <select id="subj1Select" class="col-span-8 glass-input rounded-xl px-3 py-2 text-xs text-white cursor-pointer"></select>
+                                    <input type="number" id="subj1Marks" min="0" max="100" value="75" placeholder="Marks" class="col-span-4 glass-input rounded-xl px-2 py-2 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                </div>
+                            </div>
+
+                            <!-- Subject 2 -->
+                            <div class="glass-panel p-3 rounded-2xl">
+                                <label class="block text-[11px] text-slate-400 mb-1">Subject 02</label>
+                                <div class="grid grid-cols-12 gap-2">
+                                    <select id="subj2Select" class="col-span-8 glass-input rounded-xl px-3 py-2 text-xs text-white cursor-pointer"></select>
+                                    <input type="number" id="subj2Marks" min="0" max="100" value="70" placeholder="Marks" class="col-span-4 glass-input rounded-xl px-2 py-2 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                </div>
+                            </div>
+
+                            <!-- Subject 3 -->
+                            <div class="glass-panel p-3 rounded-2xl">
+                                <label class="block text-[11px] text-slate-400 mb-1">Subject 03</label>
+                                <div class="grid grid-cols-12 gap-2">
+                                    <select id="subj3Select" class="col-span-8 glass-input rounded-xl px-3 py-2 text-xs text-white cursor-pointer"></select>
+                                    <input type="number" id="subj3Marks" min="0" max="100" value="65" placeholder="Marks" class="col-span-4 glass-input rounded-xl px-2 py-2 text-xs text-center font-bold text-cyan-400 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="calcBtn" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 border border-white/20">
+                        <i class="fa-solid fa-calculator"></i> Calculate Z-Score
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Right Column: Results & Course List (7 cols) -->
+        <section class="lg:col-span-7 space-y-6">
+            
+            <!-- Glass Stats Panel -->
+            <div class="glass-panel rounded-3xl p-6 shadow-2xl grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div class="glass-panel rounded-2xl p-4">
+                    <span class="text-[11px] text-slate-400 block mb-1">Estimated Z-Score</span>
+                    <span id="zScoreVal" class="text-3xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">1.5420</span>
+                </div>
+                <div class="glass-panel rounded-2xl p-4 flex flex-col justify-center">
+                    <span class="text-[11px] text-slate-400 block mb-1">Combination</span>
+                    <span id="subjCombVal" class="text-xs font-semibold text-slate-200 line-clamp-2">Combined Maths, Physics, ICT</span>
+                </div>
+                <div class="glass-panel rounded-2xl p-4">
+                    <span class="text-[11px] text-slate-400 block mb-1">Eligible State Courses</span>
+                    <span id="eligibleCount" class="text-3xl font-black text-white">0</span>
+                </div>
+            </div>
+
+            <!-- Glass Filter Toolbar -->
+            <div class="glass-panel rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs text-slate-400 px-2">
+                    <i class="fa-solid fa-filter text-cyan-400"></i> Category Filter:
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <button class="filter-btn active px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-medium" data-filter="all">All Eligible</button>
+                    <button class="filter-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10" data-filter="ict">ICT & Tech Only</button>
+                    <button class="filter-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10" data-filter="non-ict">Other Eligible</button>
+                </div>
+            </div>
+
+            <!-- Course Cards Container -->
+            <div id="courseList" class="space-y-4">
+                <!-- Dynamic Course Cards inserted via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Data Structure for Subjects per Stream
+        const streamSubjectOptions = {
+            maths: [
+                { id: "cm", name: "Combined Mathematics" },
+                { id: "phy", name: "Physics" },
+                { id: "chem", name: "Chemistry" },
+                { id: "ict", name: "ICT (Information & Communication Tech)" },
+                { id: "hm", name: "Higher Mathematics" }
+            ],
+            tech: [
+                { id: "et", name: "Engineering Technology (ET)" },
+                { id: "bst", name: "Bio System Technology (BST)" },
+                { id: "sft", name: "Science for Technology (SFT)" },
+                { id: "ict", name: "ICT (Information & Communication Tech)" },
+                { id: "econ", name: "Economics" },
+                { id: "geo", name: "Geography" }
+            ],
+            commerce: [
+                { id: "acc", name: "Accounting" },
+                { id: "bs", name: "Business Studies" },
+                { id: "econ", name: "Economics" },
+                { id: "ict", name: "ICT (Information & Communication Tech)" },
+                { id: "bstats", name: "Business Statistics" },
+                { id: "maths_c", name: "Mathematics" }
+            ],
+            arts: [
+                { id: "ict", name: "ICT (Information & Communication Tech)" },
+                { id: "econ", name: "Economics" },
+                { id: "geo", name: "Geography" },
+                { id: "logic", name: "Logic & Scientific Method" },
+                { id: "pol", name: "Political Science" },
+                { id: "eng", name: "English Literature" },
+                { id: "stat", name: "Statistics" }
+            ]
+        };
+
+        // UGC Recognized 17 State Universities Course Database
+        const stateUniversityCourses = [
+            {
+                name: "Computer Science (BSc. in CS)",
+                uni: "University of Colombo School of Computing (UCSC)",
+                category: "ict",
+                minZ: 1.62,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm"),
+                desc: "Premier CS degree in Sri Lanka focusing on algorithms, software architecture & AI."
+            },
+            {
+                name: "Information Systems (BSc. in IS)",
+                uni: "University of Colombo School of Computing (UCSC)",
+                category: "ict",
+                minZ: 1.38,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("bs") || subjs.includes("econ"),
+                desc: "Focuses on IT management, enterprise solutions & software analysis."
+            },
+            {
+                name: "Information Technology (BSc. Hons in IT)",
+                uni: "University of Moratuwa",
+                category: "ict",
+                minZ: 1.55,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm") || stream === "tech",
+                desc: "Top-ranked degree specializing in Software Engineering, Cybersecurity & Cloud."
+            },
+            {
+                name: "Information Technology & Management (ITM)",
+                uni: "University of Moratuwa",
+                category: "ict",
+                minZ: 1.42,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("econ") || subjs.includes("bs"),
+                desc: "Blends ICT technology with modern business analytics & management."
+            },
+            {
+                name: "Artificial Intelligence (BSc Hons)",
+                uni: "University of Moratuwa",
+                category: "ict",
+                minZ: 1.78,
+                reqCheck: (stream, subjs) => subjs.includes("cm") || (subjs.includes("ict") && stream === "maths"),
+                desc: "Advanced specialization in Machine Learning, Neural Networks & Robotics."
+            },
+            {
+                name: "Software Engineering / Computing",
+                uni: "University of Sri Jayewardenepura",
+                category: "ict",
+                minZ: 1.48,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm") || stream === "tech",
+                desc: "Full-stack development, mobile apps, database architecture & DevOps."
+            },
+            {
+                name: "Business Information Technology (BICT)",
+                uni: "University of Sri Jayewardenepura",
+                category: "ict",
+                minZ: 1.25,
+                reqCheck: (stream, subjs) => subjs.includes("ict"),
+                desc: "Specially designed for students who took ICT in Commerce / Tech / Arts / Maths."
+            },
+            {
+                name: "Management & Information Technology (MIT)",
+                uni: "University of Kelaniya",
+                category: "ict",
+                minZ: 1.38,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm") || subjs.includes("acc"),
+                desc: "Highly demanded degree connecting Enterprise IT with Operations & Supply Chain."
+            },
+            {
+                name: "Computing & Information Systems",
+                uni: "University of Kelaniya",
+                category: "ict",
+                minZ: 1.32,
+                reqCheck: (stream, subjs) => subjs.includes("ict"),
+                desc: "Covers Web engineering, database management, & Network Admin."
+            },
+            {
+                name: "Computation & Management (BSc)",
+                uni: "University of Peradeniya",
+                category: "ict",
+                minZ: 1.35,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm") || subjs.includes("econ"),
+                desc: "Joint program between Science & Management Faculties."
+            },
+            {
+                name: "Information & Communication Technology (BICT)",
+                uni: "University of Ruhuna",
+                category: "ict",
+                minZ: 1.15,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || stream === "tech",
+                desc: "Focuses on Applied ICT, Software Engineering, & Hardware/Networking."
+            },
+            {
+                name: "Computing & Information Systems",
+                uni: "Sabaragamuwa University of Sri Lanka",
+                category: "ict",
+                minZ: 1.10,
+                reqCheck: (stream, subjs) => subjs.includes("ict"),
+                desc: "Practical software design, system integration, & e-commerce systems."
+            },
+            {
+                name: "Information Technology (BSc)",
+                uni: "Rajarata University of Sri Lanka",
+                category: "ict",
+                minZ: 1.05,
+                reqCheck: (stream, subjs) => subjs.includes("ict"),
+                desc: "Comprehensive ICT curriculum catering to regional IT expansion."
+            },
+            {
+                name: "Industrial Information Technology (IIT)",
+                uni: "Uva Wellassa University",
+                category: "ict",
+                minZ: 1.12,
+                reqCheck: (stream, subjs) => subjs.includes("ict"),
+                desc: "Smart Manufacturing, Industrial IoT, & Enterprise Software Systems."
+            },
+            {
+                name: "Applied Sciences (Computer Science Major)",
+                uni: "Wayamba University of Sri Lanka",
+                category: "ict",
+                minZ: 1.08,
+                reqCheck: (stream, subjs) => subjs.includes("ict") || subjs.includes("cm"),
+                desc: "Combines CS principles with Applied Mathematics & Physics."
+            },
+            {
+                name: "BSc in Information Technology",
+                uni: "The Open University of Sri Lanka",
+                category: "ict",
+                minZ: 0.50,
+                reqCheck: (stream, subjs) => true,
+                desc: "Flexible distance-learning state degree open to any A/L stream."
+            },
+            {
+                name: "Business Administration / Commerce",
+                uni: "Colombo / Japura / Kelaniya / Peradeniya",
+                category: "non-ict",
+                minZ: 1.20,
+                reqCheck: (stream, subjs) => stream === "commerce" || subjs.includes("econ") || subjs.includes("acc"),
+                desc: "General Business Management, Finance, & Marketing degrees."
+            },
+            {
+                name: "Physical Science (BSc General)",
+                uni: "Colombo / Peradeniya / Japura / Kelaniya",
+                category: "non-ict",
+                minZ: 1.10,
+                reqCheck: (stream, subjs) => subjs.includes("cm") && subjs.includes("phy"),
+                desc: "Core Physical Sciences including Physics, Pure/Applied Maths."
+            },
+            {
+                name: "Engineering Technology (BET)",
+                uni: "Japura / Kelaniya / Ruhuna / Wayamba",
+                category: "non-ict",
+                minZ: 1.05,
+                reqCheck: (stream, subjs) => subjs.includes("et") && subjs.includes("sft"),
+                desc: "Engineering Technology specializing in Mechanical, Electrical, Civil."
+            },
+            {
+                name: "Arts & Humanities (BA)",
+                uni: "Colombo / Peradeniya / Kelaniya / Sri Palee",
+                category: "non-ict",
+                minZ: 0.80,
+                reqCheck: (stream, subjs) => stream === "arts",
+                desc: "Social Sciences, Languages, Mass Communication, & Economics."
+            }
+        ];
+
+        // UI References
+        const streamSelect = document.getElementById('streamSelect');
+        const subj1Select = document.getElementById('subj1Select');
+        const subj2Select = document.getElementById('subj2Select');
+        const subj3Select = document.getElementById('subj3Select');
+        const calcBtn = document.getElementById('calcBtn');
+        const courseList = document.getElementById('courseList');
+        const zScoreVal = document.getElementById('zScoreVal');
+        const subjCombVal = document.getElementById('subjCombVal');
+        const eligibleCount = document.getElementById('eligibleCount');
+
+        let currentFilter = 'all';
+
+        // Populate Subjects based on Stream
+        function updateSubjectDropdowns() {
+            const stream = streamSelect.value;
+            const options = streamSubjectOptions[stream] || [];
+
+            const populate = (elem, defaultIdx) => {
+                elem.innerHTML = '';
+                options.forEach((opt, idx) => {
+                    const optionElem = document.createElement('option');
+                    optionElem.value = opt.id;
+                    optionElem.textContent = opt.name;
+                    optionElem.className = "bg-slate-900 text-white";
+                    if (idx === defaultIdx) optionElem.selected = true;
+                    elem.appendChild(optionElem);
+                });
+            };
+
+            populate(subj1Select, 0);
+            populate(subj2Select, 1);
+            populate(subj3Select, 2 % options.length);
+        }
+
+        // Z-Score Estimation Function
+        function calculateEstimatedZScore(m1, m2, m3) {
+            const avg = (m1 + m2 + m3) / 3;
+            let z = (avg - 50) / 18;
+            return Math.max(0.2, Math.min(2.8, z)).toFixed(4);
+        }
+
+        // Render Courses
+        function render() {
+            const stream = streamSelect.value;
+            const s1 = subj1Select.value;
+            const s2 = subj2Select.value;
+            const s3 = subj3Select.value;
+            const subjs = [s1, s2, s3];
+
+            const m1 = parseFloat(document.getElementById('subj1Marks').value) || 0;
+            const m2 = parseFloat(document.getElementById('subj2Marks').value) || 0;
+            const m3 = parseFloat(document.getElementById('subj3Marks').value) || 0;
+
+            const zScore = calculateEstimatedZScore(m1, m2, m3);
+            zScoreVal.textContent = zScore;
+
+            // Display combination text
+            const s1Name = subj1Select.options[subj1Select.selectedIndex]?.text || '';
+            const s2Name = subj2Select.options[subj2Select.selectedIndex]?.text || '';
+            const s3Name = subj3Select.options[subj3Select.selectedIndex]?.text || '';
+            subjCombVal.textContent = `${s1Name}, ${s2Name}, ${s3Name}`;
+
+            // Filter Eligible Courses
+            courseList.innerHTML = '';
+            let matchCount = 0;
+
+            stateUniversityCourses.forEach(course => {
+                const meetsSubject = course.reqCheck(stream, subjs);
+                const meetsZ = parseFloat(zScore) >= (course.minZ - 0.25);
+
+                if (meetsSubject && meetsZ) {
+                    if (currentFilter !== 'all' && course.category !== currentFilter) return;
+
+                    matchCount++;
+                    const card = document.createElement('div');
+                    card.className = "glass-panel glass-panel-hover rounded-2xl p-5 transition-all duration-300 space-y-2";
+                    
+                    const isICT = course.category === 'ict';
+                    
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] uppercase font-bold tracking-wider ${isICT ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-400/30' : 'bg-white/5 text-slate-400 border border-white/10'} px-2.5 py-0.5 rounded-full mb-2 inline-block">
+                                    ${isICT ? 'ICT / Tech Degree' : 'State University Course'}
+                                </span>
+                                <h3 class="font-bold text-white text-base">${course.name}</h3>
+                                <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                    <i class="fa-solid fa-university text-cyan-400"></i> ${course.uni}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block">Min Cutoff</span>
+                                <span class="font-black text-sm text-cyan-400">~${course.minZ}</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed border-t border-white/10 pt-2.5 mt-2">
+                            ${course.desc}
+                        </p>
+                    `;
+                    courseList.appendChild(card);
+                }
+            });
+
+            eligibleCount.textContent = matchCount;
+
+            if (matchCount === 0) {
+                courseList.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-8 text-center text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-500 mb-2"></i>
+                        <p class="text-sm">තෝරාගත් විෂයයන් සහ ලකුණු ප්‍රමාණය අනුව ගැළපෙන පාඨමාලා හමු නොවීය.</p>
+                        <p class="text-xs text-slate-500 mt-1">ලකුණු ප්‍රමාණය වැඩි කර නැවත උත්සාහ කරන්න.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Event Listeners
+        streamSelect.addEventListener('change', () => {
+            updateSubjectDropdowns();
+            render();
+        });
+
+        [subj1Select, subj2Select, subj3Select].forEach(elem => {
+            elem.addEventListener('change', render);
+        });
+
+        calcBtn.addEventListener('click', render);
+
+        // Filter Buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.className = "filter-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10";
+                });
+                e.target.className = "filter-btn active px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-medium";
+                
+                currentFilter = e.target.getAttribute('data-filter');
+                render();
+            });
+        });
+
+        // Initial Load
+        updateSubjectDropdowns();
+        render();
+    </script>
+</body>
+</html>
